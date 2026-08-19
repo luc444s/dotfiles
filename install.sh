@@ -74,6 +74,13 @@ main() {
     fi
   fi
 
+  # Zellij config + custom themes (works on Termux and Linux)
+  mkdir -p "$HOME_DIR/.config/zellij"
+  link "$CONFIG_DIR/zellij/config.kdl" "$HOME_DIR/.config/zellij/config.kdl"
+  mkdir -p "$HOME_DIR/.config/zellij/themes"
+  link "$CONFIG_DIR/zellij/themes/catppuccin-mocha-custom.kdl" \
+       "$HOME_DIR/.config/zellij/themes/catppuccin-mocha-custom.kdl"
+
   # tmux plugin manager (TPM) — required for catppuccin/resurrect/continuum
   if [ ! -d "$HOME_DIR/.tmux/plugins/tpm" ]; then
     say "TPM not found. Install it:"

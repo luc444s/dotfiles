@@ -9,6 +9,7 @@ Configuracion personal de shell/terminal — compatible con **Termux (Android)**
 | `configs/bashrc` | Prompt con git branch + venv, auto-activacion de Python venv, wrappers de zellij/tmux. Deteccion automatica de plataforma. |
 | `configs/tmux.conf` | Tema Catppuccin Mocha, navegacion vim, copiado a clipboard cross-platform (`termux-clipboard-set` / `xclip` / `wl-copy`), tmux-resurrect + continuum. |
 | `configs/gitconfig` | Credencial via `gh`, incluye `~/.gitconfig.local` para identidad por host. |
+| `configs/zellij/` | `config.kdl` con **modo simple** (`simplified_ui true`), tema Catppuccin Mocha custom, `load_plugins`. Layouts/themes portable (auto-detecta `~/.config/zellij/themes/`). |
 | `configs/termux/` | `colors.properties` (Catppuccin Mocha), `font.ttf`, `termux.properties` (fullscreen, extra-keys, back-key, etc.). |
 
 ## Instalacion rapida
