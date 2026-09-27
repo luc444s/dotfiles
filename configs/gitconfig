@@ -1,9 +1,11 @@
 # Shared git config (user name/email intentionally left blank — set in .gitconfig.local).
+# The leading "!" is required: without it git looks for a `git credential-gh`
+# subcommand and fails with "git: 'credential-gh' is not a git command".
 [credential "https://github.com"]
-	helper = gh auth git-credential
+	helper = "!gh auth git-credential"
 
 [credential "https://gist.github.com"]
-	helper = gh auth git-credential
+	helper = "!gh auth git-credential"
 
 [include]
 	path = ~/.gitconfig.local
