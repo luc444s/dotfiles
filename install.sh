@@ -6,6 +6,12 @@
 #   ./install.sh              # install everything
 #   DRY_RUN=1 ./install.sh    # preview only, no changes
 #   ./install.sh --no-termux  # skip Termux app assets
+#
+# Workflow: shell configs are SYMLINKED, so editing the repo applies instantly.
+# The Termux app assets under ~/.termux are COPIED instead (see copy_asset),
+# so editing configs/termux/* in the repo does NOT apply until you re-run this
+# script. To edit terminal settings: change the file in this repo, re-run
+# ./install.sh, then force-stop the Termux app.
 
 set -u
 
@@ -44,6 +50,26 @@ link() {
   say "linked $dest -> $src"
 }
 
+# copy_asset <source> <dest> — install as a REAL file, not a symlink.
+# Termux >= 0.119 stats termux.properties, and if it is a symlink it logs
+#   "Ignoring properties file ... of type: symlink"
+# and silently loads built-in defaults instead. Hard links are not an option
+# either: link() is denied for untrusted_app on Android's f2fs/data partition.
+# So these two assets must be copied, and kept in sync one way.
+copy_asset() {
+  src="$1"
+  dest="$2"
+  if [ -L "$dest" ]; then
+    run rm -f "$dest"
+  elif [ -e "$dest" ]; then
+    run mv "$dest" "$dest.bak.$(date +%Y%m%d%H%M%S)"
+    say "backed up existing $dest"
+  fi
+  run cp -f "$src" "$dest"
+  run chmod 600 "$dest"
+  say "copied $src -> $dest (real file, not a symlink)"
+}
+
 main() {
   [ -d "$CONFIG_DIR" ] || die "configs/ not found next to install.sh"
 
@@ -65,9 +91,9 @@ main() {
   # Termux app assets (only meaningful on Android)
   if [ "$IS_TERMUX" = "1" ] && [ "$SKIP_TERMUX" = "0" ]; then
     mkdir -p "$HOME_DIR/.termux"
-    link "$CONFIG_DIR/termux/colors.properties" "$HOME_DIR/.termux/colors.properties"
-    link "$CONFIG_DIR/termux/font.ttf"          "$HOME_DIR/.termux/font.ttf"
-    link "$CONFIG_DIR/termux/termux.properties" "$HOME_DIR/.termux/termux.properties"
+    copy_asset "$CONFIG_DIR/termux/colors.properties" "$HOME_DIR/.termux/colors.properties"
+    copy_asset "$CONFIG_DIR/termux/font.ttf"          "$HOME_DIR/.termux/font.ttf"
+    copy_asset "$CONFIG_DIR/termux/termux.properties" "$HOME_DIR/.termux/termux.properties"
     if [ "$DRY_RUN" = "0" ] && command -v termux-reload-settings >/dev/null 2>&1; then
       termux-reload-settings
       say "reloaded Termux settings"
