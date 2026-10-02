@@ -11,10 +11,68 @@ esac
 IS_TERMUX=""
 [ -n "$PREFIX" ] && [ -d "$PREFIX/bin" ] && IS_TERMUX=1
 
-export TERM=xterm-256color
-export COLORTERM=truecolor
+# No pisar el TERM que ya exporta el emulador de terminal (kitty usa
+# xterm-kitty, que trae el protocolo de teclado completo para las TUIs).
+# Solo poner un valor por defecto si no hay ninguno.
+case "$TERM" in
+  "" | dumb) export TERM=xterm-256color ;;
+esac
+[ -z "$COLORTERM" ] && export COLORTERM=truecolor
 export EDITOR=vim
 export VISUAL=vim
+
+# ---- PATH: herramientas propias del usuario ----------------------------------
+# /etc/environment define un PATH minimo y la sesion de escritorio (kitty desde
+# el menu) no anadia estas rutas. El PATH completo solo existia heredado en
+# procesos ya abiertos, asi que en una terminal nueva faltaban opencode, yazi,
+# nvim, mssql-conf, ... Idempotente: solo anade lo que falte.
+#
+# Excluidos a proposito:
+#   ~/.local/share/pipx/shared/bin  -> trae python/pip y pisaria el python3 del sistema
+#   /opt/lampp/bin                   -> trae php/mysql/perl/curl y pisarian los del sistema
+if [ -z "$IS_TERMUX" ]; then
+  # Homebrew: aporta HOMEBREW_* y yazi/lazygit.
+  if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
+    export HOMEBREW_PREFIX="/home/linuxbrew/.linuxbrew"
+    eval "$("$HOMEBREW_PREFIX/bin/brew" shellenv)"
+  fi
+
+  _path_prepend=(
+    /home/linuxbrew/.linuxbrew/bin
+    /home/linuxbrew/.linuxbrew/sbin
+    "$HOME/.opencode/bin"
+    "$HOME/.npm-global/bin"
+    "$HOME/.local/bin"
+    "$HOME/.local/kitty.app/bin"
+    "$HOME/.cargo/bin"
+  )
+  _path_append=(
+    /opt/mssql/bin
+    /opt/nvim-linux-x86_64/bin
+    /opt/mssql-tools18/bin
+  )
+
+  # Se recorren en reversa para que el orden final sea el declarado arriba.
+  for (( i = ${#_path_prepend[@]} - 1; i >= 0; i-- )); do
+    _d="${_path_prepend[i]}"
+    [ -d "$_d" ] || continue
+    case ":$PATH:" in
+      *":$_d:"*) ;;
+      *) PATH="$_d:$PATH" ;;
+    esac
+  done
+
+  for _d in "${_path_append[@]}"; do
+    [ -d "$_d" ] || continue
+    case ":$PATH:" in
+      *":$_d:"*) ;;
+      *) PATH="$PATH:$_d" ;;
+    esac
+  done
+
+  export PATH
+  unset _d _path_prepend _path_append
+fi
 
 # Disable cursor blink
 printf '\e[?12l' >/dev/tty 2>/dev/null || true
@@ -33,10 +91,10 @@ if command -v dircolors >/dev/null 2>&1; then
   eval "$(dircolors -b 2>/dev/null)"
 fi
 
-if [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; then
+if [ -n "$IS_TERMUX" ]; then
   prompt_host=""
 else
-  prompt_host="\\h"
+  prompt_host='\h'
 fi
 
 termux_prompt() {
@@ -49,9 +107,9 @@ termux_prompt() {
     venv_name=""
   fi
   if [ -n "$branch" ]; then
-    PS1='${debian_chroot:+($debian_chroot)}'"$venv_name"'\[\e[1;35m\]\u@\[\e[1;36m\]'\"$prompt_host\"'\[\e[0m\] \[\e[1;34m\]\w\[\e[0m\] \[\e[1;90m\](\[\e[1;35m\]'"$branch"'\[\e[1;90m\])\[\e[0m\]\n\[\e[1;35m\]> \[\e[0m\]'
+    PS1='${debian_chroot:+($debian_chroot)}'"$venv_name"'\[\e[1;35m\]\u@\[\e[1;36m\]'"$prompt_host"'\[\e[0m\] \[\e[1;34m\]\w\[\e[0m\] \[\e[1;90m\](\[\e[1;35m\]'"$branch"'\[\e[1;90m\])\[\e[0m\]\n\[\e[1;35m\]> \[\e[0m\]'
   else
-    PS1='${debian_chroot:+($debian_chroot)}'"$venv_name"'\[\e[1;35m\]\u@\[\e[1;36m\]'\"$prompt_host\"'\[\e[0m\] \[\e[1;34m\]\w\[\e[0m\]\n\[\e[1;35m\]> \[\e[0m\]'
+    PS1='${debian_chroot:+($debian_chroot)}'"$venv_name"'\[\e[1;35m\]\u@\[\e[1;36m\]'"$prompt_host"'\[\e[0m\] \[\e[1;34m\]\w\[\e[0m\]\n\[\e[1;35m\]> \[\e[0m\]'
   fi
 }
 
