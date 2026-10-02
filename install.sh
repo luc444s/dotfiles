@@ -129,6 +129,14 @@ copy_asset() {
 
   [ -e "$src" ] || die "missing source: $src"
 
+  # Already identical: skip entirely. Otherwise every run would back up the
+  # asset again — font.ttf alone is ~1.9 MB, so repeat installs pile up
+  # megabytes of .bak files on a phone with no way to reclaim them.
+  if [ -f "$dest" ] && [ ! -L "$dest" ] && cmp -s "$src" "$dest"; then
+    say "ok (already up to date) $dest"
+    return 0
+  fi
+
   if [ -L "$dest" ]; then
     run rm -f "$dest"
   elif [ -e "$dest" ]; then
